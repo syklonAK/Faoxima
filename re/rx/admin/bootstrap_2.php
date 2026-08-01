@@ -74,6 +74,10 @@ if (!function_exists('rx_featCategoryRows')) {
                  ['text' => "🔗 لینک دانلود برنامه", 'callback_data' => "linkappstatus"]],
             ];
         } elseif ($cat === 'lottery') {
+            $rx_freeconfig = affiliateFreeConfigSetting();
+            $rx_freeconfig_status = $rx_freeconfig['status'] == "onfreeconfig"
+                ? $textbotlang['Admin']['Status']['statuson']
+                : $textbotlang['Admin']['Status']['statusoff'];
             return [
                 [['text' => "⚙️ تنظیمات", 'callback_data' => "gradonhshans"],
                  ['text' => $wheel_luck, 'callback_data' => "editstsuts-wheel_luck-{$setting['wheelـluck']}"],
@@ -90,6 +94,9 @@ if (!function_exists('rx_featCategoryRows')) {
                 [['text' => "⚙️ تنظیمات", 'callback_data' => "settingaffiliatesf"],
                  ['text' => $refralstatus, 'callback_data' => "editstsuts-affiliatesstatus-{$setting['affiliatesstatus']}"],
                  ['text' => "🎁 زیرمجموعه", 'callback_data' => "affiliatesstatus"]],
+                [['text' => "⚙️ تنظیمات", 'callback_data' => "settingaffiliatesf"],
+                 ['text' => $rx_freeconfig_status, 'callback_data' => $rx_freeconfig['status']],
+                 ['text' => "🎁 کانفیگ رایگان زیرمجموعه", 'callback_data' => "none"]],
                 [['text' => $statusDice, 'callback_data' => "editstsuts-Dice-{$setting['Dice']}"],
                  ['text' => "🎰 نمایش تاس", 'callback_data' => "Dice"]],
             ];
@@ -1236,7 +1243,13 @@ $paycount
     step('home', $from_id);
     nm_adminInstantReply($from_id, $statisticsall, $keyboardadmin, 'HTML');
 } elseif ($datain == "settingaffiliatesf") {
-    nm_adminInstantReply($from_id, $textbotlang['users']['selectoption'], $affiliates, 'HTML');
+    $rx_freeconfig = affiliateFreeConfigSetting();
+    $rx_freeconfig_text = $textbotlang['users']['selectoption'] . "
+
+🎁 کانفیگ رایگان زیرمجموعه : " . ($rx_freeconfig['status'] == "onfreeconfig" ? "فعال" : "غیرفعال") . "
+• 👥 تعداد زیرمجموعه لازم : {$rx_freeconfig['required']} نفر
+• 🎟 سقف کانفیگ رایگان هر کاربر : {$rx_freeconfig['max']} عدد";
+    nm_adminInstantReply($from_id, $rx_freeconfig_text, $affiliates, 'HTML');
 } elseif ($text == $textbotlang['Admin']['btnkeyboardadmin']['addpanel'] && $adminrulecheck['rule'] == "administrator") {
     nm_adminInstantReply($from_id, $textbotlang['Admin']['managepanel']['Inbound']['gettypepanel'], $keyboardtypepanel, 'HTML');
 } elseif (preg_match('/typepanel#(.*)/', $datain, $dataget)) {
