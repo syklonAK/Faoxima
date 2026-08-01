@@ -267,6 +267,8 @@ $affiliates =  json_encode([
         [['text' => "🎁 پورسانت بعد از خرید"],['text' => "🎁 هدیه استارت"]],
         [['text' => "🎉 پورسانت فقط برای خرید اول"]],
         [['text' => "🌟 مبلغ هدیه استارت"]],
+        [['text' => "🎁 کانفیگ رایگان زیرمجموعه"]],
+        [['text' => "👥 تعداد زیرمجموعه لازم"],['text' => "🎟 سقف کانفیگ رایگان"]],
         [['text' => $textbotlang['Admin']['backadmin']],['text' => $textbotlang['Admin']['backmenu']]]
     ],
     'resize_keyboard' => true

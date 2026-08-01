@@ -700,14 +700,28 @@ if (preg_match('/^sendresidcart-(.*)/', $datain, $dataget)) {
     $inforefral = $stmt->fetch(PDO::FETCH_ASSOC) ?: ['orders' => 0, 'total_price' => 0];
     $orders_count = (int)($inforefral['orders'] ?? 0);
     $total_purchase = (float)($inforefral['total_price'] ?? 0);
-    $keyboard_share = json_encode([
-        'inline_keyboard' => [
-            [
-                ['text' => "🎁 دریافت هدیه عضویت", 'callback_data' => "get_gift_start"],
-                ['text' => "🔗 اشتراک گذاری لینک", 'url' => "https://t.me/share/url?url=https://t.me/$usernamebot?start=$from_id"],
-            ],
-        ]
-    ]);
+    $rows_share = [
+        [
+            ['text' => "🎁 دریافت هدیه عضویت", 'callback_data' => "get_gift_start"],
+            ['text' => "🔗 اشتراک گذاری لینک", 'url' => "https://t.me/share/url?url=https://t.me/$usernamebot?start=$from_id"],
+        ],
+    ];
+    $text_freeconfig = "";
+    $freeconfiginfo = affiliateFreeConfigStatus($from_id);
+    if ($freeconfiginfo['status'] == "onfreeconfig") {
+        $text_freeconfig = "
+<b>🎁 کانفیگ رایگان زیرمجموعه:</b>
+• 👥 با دعوت هر {$freeconfiginfo['required']} نفر، یک کانفیگ رایگان می‌گیری
+• 📈 پیشرفت شما: {$freeconfiginfo['progress']} از {$freeconfiginfo['required']} نفر
+• 🎟 دریافت‌شده: {$freeconfiginfo['claimed']} از {$freeconfiginfo['max']} کانفیگ
+";
+        if ($freeconfiginfo['claimable'] > 0) {
+            $rows_share[] = [
+                ['text' => "🎁 دریافت کانفیگ رایگان", 'callback_data' => "get_free_config"],
+            ];
+        }
+    }
+    $keyboard_share = json_encode(['inline_keyboard' => $rows_share]);
     $text_start = "";
     $text_porsant = "";
     $Percent_porsant = $setting['affiliatespercentage'];
@@ -736,7 +750,7 @@ $text_porsant
 • 💵 مجموع خرید: $sum_order تومان
 
 <b>📢 دعوت کن، هدیه بگیر، رشد کن!</b>
-";
+$text_freeconfig";
 
     sendmessage($from_id, $textaffiliates, $keyboard_share, 'HTML');
 } elseif ($datain == "get_gift_start") {
@@ -803,6 +817,89 @@ $text_porsant
             'chat_id' => $setting['Channel_Report'],
             'message_thread_id' => $porsantreport,
             'text' => $report_join_gift,
+            'parse_mode' => "HTML"
+        ]);
+    }
+} elseif ($datain == "get_free_config") {
+    if ($setting['affiliatesstatus'] == "offaffiliates") {
+        sendmessage($from_id, $textbotlang['users']['affiliates']['offaffiliates'], null, 'HTML');
+        return;
+    }
+    $freeconfiginfo = affiliateFreeConfigStatus($from_id);
+    if ($freeconfiginfo['status'] != "onfreeconfig") {
+        sendmessage($from_id, "📛 دریافت کانفیگ رایگان زیرمجموعه در حال حاضر غیرفعال است.", null, 'HTML');
+        return;
+    }
+    if ($freeconfiginfo['claimed'] >= $freeconfiginfo['max']) {
+        sendmessage($from_id, "⛔ شما به سقف تعداد کانفیگ رایگان زیرمجموعه رسیده‌اید.", null, 'HTML');
+        return;
+    }
+    if ($freeconfiginfo['claimable'] < 1) {
+        sendmessage($from_id, "📛 برای دریافت کانفیگ رایگان بعدی باید {$freeconfiginfo['remaining']} نفر دیگر دعوت کنید.", null, 'HTML');
+        return;
+    }
+    $reward_id = reserveAffiliateFreeConfig($from_id, $freeconfiginfo['claimed'] + 1, $freeconfiginfo['invites']);
+    if ($reward_id == 0) {
+        sendmessage($from_id, "⏳ درخواست قبلی شما در حال پردازش است، لطفاً کمی بعد دوباره تلاش کنید.", null, 'HTML');
+        return;
+    }
+    $freeconfig = createAffiliateFreeConfig($from_id);
+    if (!$freeconfig['status']) {
+        $stmt = $pdo->prepare("DELETE FROM affiliate_freeconfig WHERE id = :id");
+        $stmt->execute([':id' => $reward_id]);
+        if ($freeconfig['error'] == "nopanel" || $freeconfig['error'] == "stock") {
+            sendmessage($from_id, "❌ در حال حاضر امکان ساخت کانفیگ رایگان وجود ندارد، لطفاً به پشتیبانی اطلاع دهید.", $keyboard, 'HTML');
+            return;
+        }
+        sendmessage($from_id, $textbotlang['users']['usertest']['errorcreat'], $keyboard, 'HTML');
+        if (strlen($setting['Channel_Report'] ?? '') > 0) {
+            telegram('sendmessage', [
+                'chat_id' => $setting['Channel_Report'],
+                'message_thread_id' => $errorreport,
+                'text' => "⭕️ ساخت کانفیگ رایگان زیرمجموعه با خطا مواجه شد و به کاربر کانفیگ داده نشد
+✍️ دلیل خطا :
+{$freeconfig['msg']}
+آیدی کاربر : $from_id
+نام کاربری کاربر : @$username
+نام پنل : {$freeconfig['panel']['name_panel']}",
+                'parse_mode' => "HTML"
+            ]);
+        }
+        return;
+    }
+    update("affiliate_freeconfig", "id_invoice", $freeconfig['invoice'], "id", $reward_id);
+    $panelfree = $freeconfig['panel'];
+    $freeconfigbtn = json_encode([
+        'inline_keyboard' => [
+            [
+                ['text' => $textbotlang['users']['help']['btninlinebuy'], 'callback_data' => "helpbtn"],
+            ]
+        ]
+    ]);
+    $textafter = $panelfree['type'] == "ibsng" || $panelfree['type'] == "mikrotik" ? $datatextbot['textafterpayibsng'] : $datatextbot['textaftertext'];
+    $textcreatuser = str_replace('{username}', $freeconfig['username_service'], $textafter);
+    $textcreatuser = str_replace('{name_service}', "کانفیگ رایگان زیرمجموعه", $textcreatuser);
+    $textcreatuser = str_replace('{location}', $panelfree['name_panel'], $textcreatuser);
+    $textcreatuser = str_replace('{day}', $panelfree['time_usertest'], $textcreatuser);
+    $textcreatuser = str_replace('{volume}', $panelfree['val_usertest'], $textcreatuser);
+    $textcreatuser = applyConnectionPlaceholders($textcreatuser, $freeconfig['sub_link'], $freeconfig['config']);
+    if ($panelfree['type'] == "ibsng" || $panelfree['type'] == "mikrotik") {
+        $textcreatuser = str_replace('{password}', $freeconfig['subscription_url'], $textcreatuser);
+        update("invoice", "user_info", $freeconfig['subscription_url'], "id_invoice", $freeconfig['invoice']);
+    }
+    sendMessageService($panelfree, $freeconfig['configs'], $freeconfig['sub_link'], $freeconfig['username_service'], $freeconfigbtn, $textcreatuser, $freeconfig['invoice']);
+    sendmessage($from_id, $textbotlang['users']['selectoption'], $keyboard, 'HTML');
+    step('home', $from_id);
+    if (strlen($setting['Channel_Report'] ?? '') > 0) {
+        telegram('sendmessage', [
+            'chat_id' => $setting['Channel_Report'],
+            'message_thread_id' => $otherreport,
+            'text' => "🎁 کانفیگ رایگان زیرمجموعه صادر شد
+▫️آیدی عددی کاربر : <code>$from_id</code>
+▫️نام کاربری کاربر : @$username
+▫️تعداد زیرمجموعه : {$freeconfiginfo['invites']}
+▫️نام کاربری کانفیگ : {$freeconfig['username_service']}
+▫️کد پیگیری : {$freeconfig['invoice']}",
             'parse_mode' => "HTML"
         ]);
     }

@@ -1696,6 +1696,62 @@ $iduser  در ربات  رفع مسدود گردید
         ]
     ]);
     Editmessagetext($from_id, $message_id, $textbotlang['Admin']['Status']['DiscountaffiliatesStatuson'], $keyboardDiscountaffiliates);
+} elseif ($text == "🎁 کانفیگ رایگان زیرمجموعه" && $adminrulecheck['rule'] == "administrator") {
+    $freeconfigsetting = affiliateFreeConfigSetting();
+    $keyboardfreeconfig = json_encode([
+        'inline_keyboard' => [
+            [
+                ['text' => $freeconfigsetting['status'], 'callback_data' => $freeconfigsetting['status']],
+            ],
+        ]
+    ]);
+    $textfreeconfig = "🎁 وضعیت کانفیگ رایگان زیرمجموعه را تعیین کنید
+
+• 👥 تعداد زیرمجموعه لازم : {$freeconfigsetting['required']} نفر
+• 🎟 سقف کانفیگ رایگان هر کاربر : {$freeconfigsetting['max']} عدد";
+    nm_adminInstantReply($from_id, $textfreeconfig, $keyboardfreeconfig, 'HTML');
+} elseif ($datain == "onfreeconfig" && $adminrulecheck['rule'] == "administrator") {
+    update("affiliates", "freeconfig_status", "offfreeconfig");
+    $keyboardfreeconfig = json_encode([
+        'inline_keyboard' => [
+            [
+                ['text' => "offfreeconfig", 'callback_data' => "offfreeconfig"],
+            ],
+        ]
+    ]);
+    Editmessagetext($from_id, $message_id, "❌ کانفیگ رایگان زیرمجموعه غیرفعال شد", $keyboardfreeconfig);
+} elseif ($datain == "offfreeconfig" && $adminrulecheck['rule'] == "administrator") {
+    update("affiliates", "freeconfig_status", "onfreeconfig");
+    $keyboardfreeconfig = json_encode([
+        'inline_keyboard' => [
+            [
+                ['text' => "onfreeconfig", 'callback_data' => "onfreeconfig"],
+            ],
+        ]
+    ]);
+    Editmessagetext($from_id, $message_id, "✅ کانفیگ رایگان زیرمجموعه فعال شد", $keyboardfreeconfig);
+} elseif ($text == "👥 تعداد زیرمجموعه لازم" && $adminrulecheck['rule'] == "administrator") {
+    nm_adminInstantReply($from_id, "📌 تعداد زیرمجموعه لازم برای دریافت یک کانفیگ رایگان را ارسال کنید", $backadmin, 'HTML');
+    step('setfreeconfigcount', $from_id);
+} elseif ($user['step'] == "setfreeconfigcount") {
+    if (!ctype_digit($text) || intval($text) < 1) {
+        nm_adminInstantReply($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backadmin, 'HTML');
+        return;
+    }
+    update("affiliates", "freeconfig_count", $text);
+    nm_adminInstantReply($from_id, "✅ تعداد زیرمجموعه لازم روی $text نفر تنظیم شد", $affiliates, 'HTML');
+    step('home', $from_id);
+} elseif ($text == "🎟 سقف کانفیگ رایگان" && $adminrulecheck['rule'] == "administrator") {
+    nm_adminInstantReply($from_id, "📌 حداکثر تعداد کانفیگ رایگانی که هر کاربر می‌تواند بگیرد را ارسال کنید", $backadmin, 'HTML');
+    step('setfreeconfigmax', $from_id);
+} elseif ($user['step'] == "setfreeconfigmax") {
+    if (!ctype_digit($text) || intval($text) < 1) {
+        nm_adminInstantReply($from_id, $textbotlang['Admin']['agent']['invalidvlue'], $backadmin, 'HTML');
+        return;
+    }
+    update("affiliates", "freeconfig_max", $text);
+    nm_adminInstantReply($from_id, "✅ سقف کانفیگ رایگان هر کاربر روی $text عدد تنظیم شد", $affiliates, 'HTML');
+    step('home', $from_id);
 } elseif ($text == "🌟 مبلغ هدیه استارت" && $adminrulecheck['rule'] == "administrator") {
     nm_adminInstantReply($from_id, $textbotlang['users']['affiliates']['priceDiscount'], $backadmin, 'HTML');
     step('getdiscont', $from_id);
