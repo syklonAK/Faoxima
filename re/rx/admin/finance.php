@@ -1701,7 +1701,7 @@ $iduser  در ربات  رفع مسدود گردید
     $keyboardfreeconfig = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => $freeconfigsetting['status'], 'callback_data' => $freeconfigsetting['status']],
+                ['text' => $freeconfigsetting['status'] == "onfreeconfig" ? "✅ فعال" : "❌ غیرفعال", 'callback_data' => $freeconfigsetting['status']],
             ],
         ]
     ]);
@@ -1715,7 +1715,7 @@ $iduser  در ربات  رفع مسدود گردید
     $keyboardfreeconfig = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => "offfreeconfig", 'callback_data' => "offfreeconfig"],
+                ['text' => "❌ غیرفعال", 'callback_data' => "offfreeconfig"],
             ],
         ]
     ]);
@@ -1725,7 +1725,7 @@ $iduser  در ربات  رفع مسدود گردید
     $keyboardfreeconfig = json_encode([
         'inline_keyboard' => [
             [
-                ['text' => "onfreeconfig", 'callback_data' => "onfreeconfig"],
+                ['text' => "✅ فعال", 'callback_data' => "onfreeconfig"],
             ],
         ]
     ]);
