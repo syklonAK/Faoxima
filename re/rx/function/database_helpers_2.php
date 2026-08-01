@@ -630,6 +630,7 @@ function affiliateFreeConfigSetting()
         'status' => $affiliates['freeconfig_status'] ?? 'offfreeconfig',
         'required' => $required < 1 ? 5 : $required,
         'max' => $max < 1 ? 1 : $max,
+        'panel' => $affiliates['freeconfig_panel'] ?? 'none',
     );
 }
 function affiliateFreeConfigStatus($from_id)
@@ -679,7 +680,13 @@ function reserveAffiliateFreeConfig($from_id, $reward_index, $invites)
 function createAffiliateFreeConfig($from_id)
 {
     global $pdo, $ManagePanel;
-    $panel = select("marzban_panel", "*", "TestAccount", "ONTestAccount", "select");
+    $config = affiliateFreeConfigSetting();
+    $panel = false;
+    if ($config['panel'] != "none" && $config['panel'] != "") {
+        $panel = select("marzban_panel", "*", "code_panel", $config['panel'], "select");
+    }
+    if (!$panel || !isset($panel['code_panel']))
+        $panel = select("marzban_panel", "*", "TestAccount", "ONTestAccount", "select");
     if (!$panel || !isset($panel['code_panel']))
         return array('status' => false, 'error' => 'nopanel');
     if ($panel['hide_user'] != null) {

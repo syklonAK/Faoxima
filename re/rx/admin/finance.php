@@ -1705,10 +1705,17 @@ $iduser  در ربات  رفع مسدود گردید
             ],
         ]
     ]);
+    $namepanelfreeconfig = "پنل سرویس تست";
+    if ($freeconfigsetting['panel'] != "none" && $freeconfigsetting['panel'] != "") {
+        $panelfreeconfig = select("marzban_panel", "*", "code_panel", $freeconfigsetting['panel'], "select");
+        if (isset($panelfreeconfig['name_panel']))
+            $namepanelfreeconfig = $panelfreeconfig['name_panel'];
+    }
     $textfreeconfig = "🎁 وضعیت کانفیگ رایگان زیرمجموعه را تعیین کنید
 
 • 👥 تعداد زیرمجموعه لازم : {$freeconfigsetting['required']} نفر
-• 🎟 سقف کانفیگ رایگان هر کاربر : {$freeconfigsetting['max']} عدد";
+• 🎟 سقف کانفیگ رایگان هر کاربر : {$freeconfigsetting['max']} عدد
+• 🖥 پنل صدور کانفیگ : $namepanelfreeconfig";
     nm_adminInstantReply($from_id, $textfreeconfig, $keyboardfreeconfig, 'HTML');
 } elseif ($datain == "onfreeconfig" && $adminrulecheck['rule'] == "administrator") {
     update("affiliates", "freeconfig_status", "offfreeconfig");
@@ -1741,6 +1748,28 @@ $iduser  در ربات  رفع مسدود گردید
     update("affiliates", "freeconfig_count", $text);
     nm_adminInstantReply($from_id, "✅ تعداد زیرمجموعه لازم روی $text نفر تنظیم شد", $affiliates, 'HTML');
     step('home', $from_id);
+} elseif ($text == "🖥 پنل کانفیگ رایگان" && $adminrulecheck['rule'] == "administrator") {
+    $freeconfigsetting = affiliateFreeConfigSetting();
+    $rowspanelfreeconfig = [[['text' => ($freeconfigsetting['panel'] == "none" || $freeconfigsetting['panel'] == "" ? "✅ " : "") . "پنل سرویس تست (پیش‌فرض)", 'callback_data' => "freeconfigpanel#none"]]];
+    $stmt = $pdo->query("SELECT name_panel, code_panel FROM marzban_panel");
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $rowpanel) {
+        $rowspanelfreeconfig[] = [[
+            'text' => ($freeconfigsetting['panel'] == $rowpanel['code_panel'] ? "✅ " : "") . $rowpanel['name_panel'],
+            'callback_data' => "freeconfigpanel#" . $rowpanel['code_panel']
+        ]];
+    }
+    nm_adminInstantReply($from_id, "🖥 پنلی که کانفیگ رایگان زیرمجموعه از روی آن ساخته شود را انتخاب کنید
+
+حجم و زمان کانفیگ از تنظیمات سرویس تست همان پنل خوانده می‌شود", json_encode(['inline_keyboard' => $rowspanelfreeconfig]), 'HTML');
+} elseif (preg_match('/freeconfigpanel#(.*)/', $datain, $datagetfreeconfigpanel) && $adminrulecheck['rule'] == "administrator") {
+    update("affiliates", "freeconfig_panel", $datagetfreeconfigpanel[1]);
+    $namepanelfreeconfig = "پنل سرویس تست (پیش‌فرض)";
+    if ($datagetfreeconfigpanel[1] != "none") {
+        $panelfreeconfig = select("marzban_panel", "*", "code_panel", $datagetfreeconfigpanel[1], "select");
+        if (isset($panelfreeconfig['name_panel']))
+            $namepanelfreeconfig = $panelfreeconfig['name_panel'];
+    }
+    Editmessagetext($from_id, $message_id, "✅ پنل کانفیگ رایگان روی <b>$namepanelfreeconfig</b> تنظیم شد", null);
 } elseif ($text == "🎟 سقف کانفیگ رایگان" && $adminrulecheck['rule'] == "administrator") {
     nm_adminInstantReply($from_id, "📌 حداکثر تعداد کانفیگ رایگانی که هر کاربر می‌تواند بگیرد را ارسال کنید", $backadmin, 'HTML');
     step('setfreeconfigmax', $from_id);
