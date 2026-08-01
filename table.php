@@ -1262,12 +1262,13 @@ try {
         freeconfig_status varchar(100),
         freeconfig_count varchar(100),
         freeconfig_max varchar(100),
+        freeconfig_panel varchar(100),
         id_media varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci  NULL)
         ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci");
         if (!$result) {
             error_log("[table.php] table affiliates: " . mysqli_error($connect));
         }
-        $connect->query("INSERT INTO affiliates (description,id_media,status_commission,Discount,porsant_one_buy,freeconfig_status,freeconfig_count,freeconfig_max) VALUES ('none','none','oncommission','onDiscountaffiliates','off_buy_porsant','offfreeconfig','5','1')");
+        $connect->query("INSERT INTO affiliates (description,id_media,status_commission,Discount,porsant_one_buy,freeconfig_status,freeconfig_count,freeconfig_max,freeconfig_panel) VALUES ('none','none','oncommission','onDiscountaffiliates','off_buy_porsant','offfreeconfig','5','1','none')");
     } else {
         $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'porsant_one_buy'");
         if (mysqli_num_rows($Check_filde) != 1) {
@@ -1306,6 +1307,11 @@ try {
         if (mysqli_num_rows($Check_filde) != 1) {
             $connect->query("ALTER TABLE affiliates ADD freeconfig_max VARCHAR(100)");
             $connect->query("UPDATE affiliates SET freeconfig_max = '1'");
+        }
+        $Check_filde = $connect->query("SHOW COLUMNS FROM affiliates LIKE 'freeconfig_panel'");
+        if (mysqli_num_rows($Check_filde) != 1) {
+            $connect->query("ALTER TABLE affiliates ADD freeconfig_panel VARCHAR(100)");
+            $connect->query("UPDATE affiliates SET freeconfig_panel = 'none'");
         }
     }
 } catch (Exception $e) {
